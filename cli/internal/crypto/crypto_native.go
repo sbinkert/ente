@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"bufio"
+	"crypto/rand"
 	"errors"
 	"github.com/ente/cli/utils/encoding"
 	"golang.org/x/crypto/nacl/box"
@@ -52,6 +53,21 @@ func decryptChaCha20poly1305V2(data []byte, key []byte, nonce []byte) ([]byte, e
 		return nil, err
 	}
 	return decoded, nil
+}
+
+// SecretBoxSeal encrypts msg with key using XSalsa20-Poly1305 and a random
+// nonce, matching libsodium's crypto_secretbox_easy. Returns (cipher, nonce).
+func SecretBoxSeal(msg []byte, key []byte) ([]byte, []byte, error) {
+	if len(key) != 32 {
+		return nil, nil, errors.New("secretbox key must be 32 bytes")
+	}
+	var nonce [24]byte
+	if _, err := rand.Read(nonce[:]); err != nil {
+		return nil, nil, err
+	}
+	var k [32]byte
+	copy(k[:], key)
+	return secretbox.Seal(nil, msg, &nonce, &k), nonce[:], nil
 }
 
 func SecretBoxOpenBase64(cipher string, nonce string, k []byte) ([]byte, error) {
